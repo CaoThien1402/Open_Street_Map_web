@@ -1,0 +1,86 @@
+/* --- CÀI ĐẶT CƠ BẢN CHO TOÀN TRANG --- */
+html, body, #root {
+  height: 100%; /* Bắt buộc: Phải làm cho tất cả các thẻ cha đầy màn hình */
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  overflow: hidden; /* Ngăn cuộn trang không cần thiết */
+}
+
+/* --- CHIA LAYOUT ỨNG DỤNG BẰNG FLEXBOX --- */
+.App {
+  text-align: center;
+  
+  /* 1. Đặt làm cột (header trên, map dưới) */
+  display: flex;
+  flex-direction: column; 
+  
+  /* 2. Bắt buộc chiều cao bằng 100% màn hình */
+  height: 100vh; 
+}
+
+/* --- PHẦN HEADER (THANH TÌM KIẾM) --- */
+.App-header {
+  /* 3. Không co lại khi màn hình nhỏ */
+  flex-shrink: 0; 
+  
+  /* CSS cũ */
+  background-color: #f0f0f0;
+  padding: 0;
+  border-bottom: 2px solid #ccc;
+  z-index: 1000; /* Đảm bảo header luôn ở trên */
+  position: relative;
+}
+
+/* CSS cho thanh tìm kiếm thông minh (giữ nguyên) */
+.global-search-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box; 
+}
+
+.global-search-container input {
+  width: 60%; 
+  max-width: 600px;
+  padding: 12px 15px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px 0 0 8px; 
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-right: none;
+}
+
+.global-search-container button {
+  padding: 12px 20px;
+  font-size: 16px;
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 0 8px 8px 0; 
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.global-search-container button:hover {
+  background-color: #005a9e;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+}
+
+
+/* --- PHẦN BẢN ĐỒ --- */
+.map-container {
+  /* 4. Tự động LẤP ĐẦY toàn bộ không gian còn lại */
+  flex-grow: 1; 
+  
+  /* 5. GHI ĐÈ CSS CŨ: Xóa các dòng này đi */
+  /* height: 600px; <-- XÓA */
+  /* margin-top: 20px; <-- XÓA */
+
+  width: 100%; /* Giữ nguyên */
+}
