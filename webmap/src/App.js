@@ -130,7 +130,7 @@ function App() {
           lon: poi.lon || (poi.center && poi.center.lon),
           display_name: poi.tags?.name || `(${query} không tên)`,
           type: poi.tags?.amenity || query
-        }));
+        })).slice(0, 5); // Chỉ lấy 5 kết quả đầu tiên
         setPois(normalizedPois);
         setMapCenter([lat, lon]); // Zoom về vị trí người dùng
       } else {
