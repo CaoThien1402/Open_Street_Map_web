@@ -72,15 +72,66 @@ html, body, #root {
   margin-top: 10px;
 }
 
-
-/* --- PHẦN BẢN ĐỒ --- */
 .map-container {
-  /* 4. Tự động LẤP ĐẦY toàn bộ không gian còn lại */
   flex-grow: 1; 
-  
-  /* 5. GHI ĐÈ CSS CŨ: Xóa các dòng này đi */
-  /* height: 600px; <-- XÓA */
-  /* margin-top: 20px; <-- XÓA */
 
-  width: 100%; /* Giữ nguyên */
+  width: 100%; 
+}
+
+.find-me-btn {
+  margin-right: 10px; 
+  
+  padding: 12px 15px;
+  font-size: 18px; 
+  
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.find-me-btn:hover {
+  background-color: #e9e9e9;
+}
+
+.global-search-container input {
+  border-radius: 8px 0 0 8px; 
+  border-left: 1px solid #ccc; 
+}
+
+.weather-overlay {
+  position: absolute;
+  top: 70px; 
+  right: 10px;
+  
+  background-color: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+  z-index: 1000;
+  
+  width: 220px; 
+
+  font-family: Arial, sans-serif;
+  font-size: 0.9em;
+  color: #333;
+}
+
+.weather-overlay h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+}
+
+.weather-overlay .forecast-item {
+  font-size: 0.95em;
+  margin-top: 5px;
+  padding-left: 5px;
 }
