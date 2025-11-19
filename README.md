@@ -1,0 +1,3 @@
+# A small project of subject: Computational Thinking 
+This is my personal project that just practice to vibe code with AI agents and using APIs. 
+Know how to build a website that have map, weather ...

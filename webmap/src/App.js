@@ -155,7 +155,7 @@ function App() {
     const overpassQuery = `
       [out:json][timeout:60];
       ( nwr(around:${RADIUS_M},${lat},${lon})${tag}; );
-      out center 20;
+      out center 5;
     `;
     
     try {
@@ -165,9 +165,9 @@ function App() {
       });
       const data = await response.json();
 
-      //setPOI
+      //setPOI - limit to 5
       if (data.elements && data.elements.length > 0) {
-        const normalizedPois = data.elements.map(poi => ({
+        const normalizedPois = data.elements.slice(0, 5).map(poi => ({
           id: poi.id,
           lat: poi.lat || (poi.center && poi.center.lat),
           lon: poi.lon || (poi.center && poi.center.lon),
