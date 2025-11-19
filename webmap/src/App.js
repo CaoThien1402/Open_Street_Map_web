@@ -75,6 +75,24 @@ function App() {
       const place = nominatimData[0];
       const { lat, lon } = place;
 
+      // Tìm 5 POI xung quanh địa điểm
+      const RADIUS_M = 5000; // 5km radius
+      const overpassQuery = `
+        [out:json][timeout:60];
+        (
+          node(around:${RADIUS_M},${lat},${lon})["tourism"];
+          node(around:${RADIUS_M},${lat},${lon})["amenity"~"restaurant|cafe|bank|hospital|school"];
+          node(around:${RADIUS_M},${lat},${lon})["shop"];
+        );
+        out center 5;
+      `;
+
+      const overpassResponse = await fetch("https://overpass-api.de/api/interpreter", {
+        method: 'POST',
+        body: overpassQuery
+      });
+      const overpassData = await overpassResponse.json();
+
       //API WEATHER
       const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OWM_API_KEY}&units=metric`;
       const weatherResponse = await fetch(weatherUrl);
@@ -85,31 +103,43 @@ function App() {
       const forecastResponse = await fetch(forecastUrl);
       const forecastData = await forecastResponse.json();
 
-      // update the application's state with the location and weather data
-      setPois([
-        {
-          id: place.osm_id,
-          lat: place.lat,
-          lon: place.lon,
-          display_name: place.display_name,
-          type: place.type,
+      // Xử lý POIs
+      let poisArray = [];
+      if (overpassData.elements && overpassData.elements.length > 0) {
+        poisArray = overpassData.elements.slice(0, 5).map(poi => ({
+          id: poi.id,
+          lat: poi.lat || (poi.center && poi.center.lat),
+          lon: poi.lon || (poi.center && poi.center.lon),
+          display_name: poi.tags?.name || poi.tags?.tourism || poi.tags?.amenity || poi.tags?.shop || "POI",
+          type: poi.tags?.tourism || poi.tags?.amenity || poi.tags?.shop || "point of interest"
+        }));
+      }
 
-          weather: {
-            current: { 
-              temperature: weatherData.main.temp,
-              windspeed: weatherData.wind.speed,
-              humidity: weatherData.main.humidity,
-              description: weatherData.weather[0].description
-            },
-            forecast: forecastData.list 
-          }
+      // Thêm địa điểm chính với thông tin thời tiết
+      poisArray.unshift({
+        id: place.osm_id,
+        lat: place.lat,
+        lon: place.lon,
+        display_name: place.display_name,
+        type: place.type,
+        weather: {
+          current: { 
+            temperature: weatherData.main.temp,
+            windspeed: weatherData.wind.speed,
+            humidity: weatherData.main.humidity,
+            description: weatherData.weather[0].description
+          },
+          forecast: forecastData.list 
         }
-      ]);
+      });
+
+      // update the application's state with the location and POI data
+      setPois(poisArray);
       // update the map's center to the location's coordinates.
-      setMapCenter([place.lat, place.lon]);
+      setMapCenter([parseFloat(lat), parseFloat(lon)]);
 
     } catch (err) {
-      setError('Lỗi khi tìm địa điểm hoặc thời tiết.');
+      setError('Lỗi khi tìm địa điểm hoặc POI.');
       console.error(err);
     }
   };
