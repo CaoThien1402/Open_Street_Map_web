@@ -221,12 +221,17 @@ export default MapComponent;
 // WEATHER 
 function WeatherDisplay({ pois }) {
   // ONLY 1 POI WILL SHOW THIS (Ex: Ho Chi Minh, Da Nang)
-  if (!pois || pois.length !== 1 || !pois[0].weather) {
+  if (!pois || pois.length === 0) {
     return null; 
   }
 
-  // Lấy dữ liệu thời tiết từ POI đầu tiên
-  const { weather, display_name } = pois[0];
+  // Tìm POI có thông tin thời tiết
+  const weatherPoi = pois.find(poi => poi.weather);
+  if (!weatherPoi) {
+    return null;
+  }
+
+  const { weather, display_name } = weatherPoi;
 
   // Cắt bớt tên địa điểm cho gọn, lấy phần trước dấu phẩy đầu tiên
   const locationName = display_name.split(',')[0]; 
@@ -260,4 +265,3 @@ function WeatherDisplay({ pois }) {
     </div>
   );
 }
-

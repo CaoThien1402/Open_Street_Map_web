@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Polyline, useMap } from 'react-leaflet';
+import { Polyline, useMap, Popup } from 'react-leaflet';
 import polyline from '@mapbox/polyline';
 
 // Rout destination to destination
@@ -7,6 +7,8 @@ function Routing({ start, end }) {
   //OpenStreetMap
   const map = useMap();
   const [route, setRoute] = useState(null);
+  const [distance, setDistance] = useState(null);
+  const [duration, setDuration] = useState(null);
 
   useEffect(() => {
     if (!start || !end) {
@@ -14,7 +16,7 @@ function Routing({ start, end }) {
     }
     //  fetch geocoding data
     const geocode = async (query) => {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=vn&limit=1`);
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}, Việt Nam&format=json&countrycodes=vn&limit=1`);
       const data = await response.json();
       if (data && data.length > 0) {
 
@@ -30,25 +32,31 @@ function Routing({ start, end }) {
         const startCoords = await geocode(start);
         const endCoords = await geocode(end);
 
-        //optional waypoint
-        const waypointCoords = await geocode("Đà Nẵng, Việt Nam");
-
-        const response = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${startCoords};${waypointCoords};${endCoords}?overview=full&geometries=polyline`
+        // Try without excluding ferry first for better route coverage
+        let response = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${startCoords};${endCoords}?overview=full&geometries=polyline&alternatives=true&steps=true`
         );
         
-        const data = await response.json();
-        if (data.routes && data.routes.length > 0) {
-          const geometry = data.routes[0].geometry;
-          
-          const decodedRoute = polyline.decode(geometry); 
-
-          setRoute(decodedRoute); 
-
-          map.fitBounds(decodedRoute);
-        } else {
-          throw new Error("Không tìm thấy tuyến đường.");
+        let data = await response.json();
+        
+        // If no route found, it might be an OSRM issue - check the response
+        if (!data.routes || data.routes.length === 0) {
+          console.error("OSRM response:", data);
+          throw new Error("Không tìm thấy tuyến đường. Vui lòng thử lại với các địa điểm khác.");
         }
+        
+        // Select the shortest route (first route is usually the fastest/shortest)
+        const geometry = data.routes[0].geometry;
+        const distanceInMeters = data.routes[0].distance;
+        const durationInSeconds = data.routes[0].duration;
+        
+        const decodedRoute = polyline.decode(geometry); 
+
+        setRoute(decodedRoute); 
+        setDistance((distanceInMeters / 1000).toFixed(2)); // Convert to km
+        setDuration((durationInSeconds / 3600).toFixed(2)); // Convert to hours
+
+        map.fitBounds(decodedRoute);
       } catch (error) {
         console.error("Lỗi tìm đường:", error);
         alert(error.message);
@@ -63,11 +71,21 @@ function Routing({ start, end }) {
 
   //display route
   return (
-    <Polyline 
-      positions={route} 
-      color="blue" 
-      weight={5} 
-    />
+    <>
+      <Polyline 
+        positions={route} 
+        color="blue" 
+        weight={5} 
+      >
+        <Popup>
+          <div>
+            <b>Thông tin lộ trình:</b><br/>
+            Khoảng cách: {distance} km<br/>
+            Thời gian dự kiến: {duration} giờ
+          </div>
+        </Popup>
+      </Polyline>
+    </>
   );
 }
 
