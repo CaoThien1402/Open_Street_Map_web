@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import MapComponent from './MapComponent';
 import Routing from './Routing';
+import TranslationPopup from './TranslationPopup';
 import './App.css'; 
 
 // KEY API WEATHER
@@ -219,6 +220,10 @@ function App() {
       >
         {route && <Routing start={route.start} end={route.end} />}
       </MapComponent>
+
+      <TranslationPopup />
+
+      
     </div>
   );
 }

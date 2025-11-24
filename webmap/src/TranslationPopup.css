@@ -1,0 +1,134 @@
+/* Container chính */
+.translation-wrapper {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2000; /* Cao hơn bản đồ Leaflet */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.translate-toggle-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  transition: transform 0.2s, background-color 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.translate-toggle-btn:hover {
+  background-color: #005a9e;
+  transform: scale(1.1);
+}
+
+.translate-toggle-btn.active {
+  background-color: #d93025; /* Màu đỏ khi đang mở để đóng */
+  transform: rotate(45deg); /* Xoay thành dấu X nếu muốn, hoặc giữ nguyên */
+}
+
+/* Khung Popup */
+.translation-popup {
+  width: 300px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  margin-bottom: 15px; /* Cách nút tròn một chút */
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+  border: 1px solid #ddd;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Header Popup */
+.popup-header {
+  background-color: #f0f0f0;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.popup-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+}
+
+/* Body Popup */
+.popup-body {
+  padding: 15px;
+}
+
+.popup-body textarea {
+  width: 100%;
+  height: 80px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  margin-bottom: 10px;
+  font-family: inherit;
+  box-sizing: border-box; /* Quan trọng để không bị tràn */
+}
+
+.action-btn {
+  width: 100%;
+  padding: 8px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.action-btn:hover {
+  background-color: #218838;
+}
+
+.action-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.result-area {
+  margin-top: 15px;
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  border-left: 3px solid #0078d4;
+}
+
+.result-area p {
+  margin: 5px 0 0 0;
+  font-size: 15px;
+  color: #333;
+}
+
+.error-text {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+}
