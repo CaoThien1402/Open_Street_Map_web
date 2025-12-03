@@ -1,8 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import MapComponent from './MapComponent';
 import Routing from './Routing';
 import TranslationPopup from './TranslationPopup';
-import './App.css'; 
+import AuthForm from './AuthForm'; 
+import SearchHistory from './SearchHistory'; 
+import { auth, db} from './firebase'; 
+import { onAuthStateChanged, signOut} from 'firebase/auth'; 
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import './App.css';
 
 // KEY API WEATHER
 const OWM_API_KEY = "6522a2c7adbdafe697d81c73b019b453"; 
@@ -15,6 +20,12 @@ const LOCAL_POI_KEYWORDS = [
 
 
 function App() {
+  // trạng thái tải
+  const [isLoading, setIsLoading] = useState(false); 
+  // quản lý trạng thái đăng nhập
+  const [user, setUser] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+
   const [mainQuery, setMainQuery] = useState('');
   const [userLocation, setUserLocation] = useState(null);
   const [pois, setPois] = useState([]);
@@ -24,99 +35,173 @@ function App() {
   const [searchID, setSearchID] = useState(0);
   const [findMeTrigger, setFindMeTrigger] = useState(0);
 
-  const handleLocationFound = useCallback((latlng) => {
-    setUserLocation(latlng);
-  }, []); 
+  // --- EFFECT KIỂM TRA ĐĂNG NHẬP ---
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoadingAuth(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // --- HÀM ĐĂNG XUẤT ---
+  const handleLogout = async () => {
+    await signOut(auth);
+    setPois([]); // Xóa dữ liệu cũ khi đăng xuất
+    setRoute(null);
+  };
+  
+  const handleLocationFound = useCallback((latlng) => { setUserLocation(latlng); }, []);
+
+  // --- HÀM LƯU LỊCH SỬ VÀO FIREBASE ---
+  const saveToHistory = async (text, type = 'place') => {
+    if (!user || !text) return; // Chỉ lưu nếu đã đăng nhập
+
+    try {
+      await addDoc(collection(db, "searchHistory"), {
+        uid: user.uid,        // Của ai?
+        text: text,           // Tìm gì?
+        type: type,           // Loại tìm kiếm (place/route)
+        timestamp: serverTimestamp() // Thời gian server
+      });
+    } catch (e) {
+      console.error("Lỗi lưu lịch sử:", e);
+    }
+  };
+
+  // --- HÀM XỬ LÝ KHI CHỌN TỪ LỊCH SỬ ---
+  const handleHistorySelect = (text) => {
+    setMainQuery(text); // Điền vào ô input
+    // Vì state cập nhật bất đồng bộ, ta gọi tìm kiếm thủ công một chút
+    // Nhưng cách tốt nhất là dùng useEffect hoặc gọi trực tiếp logic tìm kiếm với tham số 'text'
+    // Ở đây ta setMainQuery và gọi handleSearch ngay sau đó sẽ bị cũ state.
+    // Cách sửa nhanh: Tách logic tìm kiếm ra hoặc gọi đệ quy.
+    
+    // Tạm thời ta setQuery rồi gọi logic tìm kiếm với text truyền vào
+    handleSearch(text); 
+  };
 
   // handle search words
-  const handleSearch = () => {
-    setSearchID(id => id + 1); 
-    const query = mainQuery.toLowerCase().trim();
+  const handleSearch = (manualQuery = null) => {
+    // Nếu có manualQuery (từ lịch sử) thì dùng, không thì dùng mainQuery từ input
+    const queryRaw = typeof manualQuery === 'string' ? manualQuery : mainQuery;
+    const query = queryRaw.toLowerCase().trim();
+
     if (!query) return;
+
+    setSearchID(id => id + 1); 
     setPois([]);
     setRoute(null);
     setError(null);
+    
+    // Nếu dùng query từ input, cập nhật lại state input cho khớp
+    if (typeof manualQuery === 'string') setMainQuery(manualQuery);
 
+    // --- LOGIC TÌM ĐƯỜNG ---
     const routeKeywords = [' đến ', ' to '];
     let routeKeywordFound = routeKeywords.find(k => query.includes(k));
 
     if (routeKeywordFound) {
       const parts = query.split(new RegExp(routeKeywordFound, 'i'));
       if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
-        setRoute({ start: parts[0].trim(), end: parts[1].trim() });
+        const start = parts[0].trim();
+        const end = parts[1].trim();
+        setRoute({ start, end });
+        
+        // --> LƯU LỊCH SỬ TÌM ĐƯỜNG
+        saveToHistory(`${start} đến ${end}`, 'route');
         return; 
       }
     }
 
-    // ask for use location
+    // --- LOGIC TÌM POI ---
     if (LOCAL_POI_KEYWORDS.includes(query)) {
       if (!userLocation) {
-        alert("Vui lòng cho phép truy cập vị trí để tìm POI lân cận.");
-        setError('Vui lòng cho phép truy cập vị trí.');
+        alert("Vui lòng cho phép truy cập vị trí.");
         return;
       }
       findPoisOverpass(query, userLocation.lat, userLocation.lng);
+      
+      // --> LƯU LỊCH SỬ TÌM POI
+      saveToHistory(query, 'poi');
       return; 
     }
+
+    // --- LOGIC TÌM ĐỊA ĐIỂM ---
     findPlaceNominatim(query);
+    // --> LƯU LỊCH SỬ TÌM ĐỊA ĐIỂM
+    saveToHistory(query, 'place');
   };
 
  const findPlaceNominatim = async (query) => {
+    setIsLoading(true); // Bắt đầu tải -> Hiện loading
+    setError(null);
+
     try {
-      // API  nominatim
+      // BƯỚC 1: LẤY TỌA ĐỘ (Bắt buộc phải xong trước)
       const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=vn&limit=1&addressdetails=1`;
       const nominatimResponse = await fetch(nominatimUrl);
       const nominatimData = await nominatimResponse.json();
       
       if (!nominatimData || nominatimData.length === 0) {
         setError(`Không tìm thấy "${query}"`);
+        setIsLoading(false);
         return;
       }
       
       const place = nominatimData[0];
       const { lat, lon } = place;
 
-      // Tìm 5 POI xung quanh địa điểm
-      const RADIUS_M = 5000; // 5km radius
+      // BƯỚC 2: CHUẨN BỊ 3 YÊU CẦU API (Nhưng chưa chờ kết quả ngay)
+      
+      // 2.1. Overpass (Tìm POI)
+      const RADIUS_M = 3000; // Giảm bán kính xuống 3km cho nhanh hơn (5km hơi nặng)
       const overpassQuery = `
-        [out:json][timeout:60];
+        [out:json][timeout:25];
         (
           node(around:${RADIUS_M},${lat},${lon})["tourism"];
-          node(around:${RADIUS_M},${lat},${lon})["amenity"~"restaurant|cafe|bank|hospital|school"];
-          node(around:${RADIUS_M},${lat},${lon})["shop"];
+          node(around:${RADIUS_M},${lat},${lon})["amenity"~"restaurant|cafe|bank|hospital"];
         );
-        out center 5;
-      `;
-
-      const overpassResponse = await fetch("https://overpass-api.de/api/interpreter", {
+        out center 10;
+      `; // Giới hạn loại tìm kiếm cho nhẹ bớt
+      
+      const overpassPromise = fetch("https://overpass.kumi.systems/api/interpreter", {
         method: 'POST',
         body: overpassQuery
-      });
-      const overpassData = await overpassResponse.json();
+      }).then(res => res.json());
 
-      //API WEATHER
-      const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OWM_API_KEY}&units=metric`;
-      const weatherResponse = await fetch(weatherUrl);
-      const weatherData = await weatherResponse.json();
+      // 2.2. Weather (Hiện tại)
+      const weatherPromise = fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OWM_API_KEY}&units=metric`
+      ).then(res => res.json());
 
-      //API FORECAST
-      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OWM_API_KEY}&units=metric&cnt=8`;
-      const forecastResponse = await fetch(forecastUrl);
-      const forecastData = await forecastResponse.json();
+      // 2.3. Forecast (Dự báo)
+      const forecastPromise = fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OWM_API_KEY}&units=metric&cnt=8`
+      ).then(res => res.json());
 
-      // Xử lý POIs
+
+      // BƯỚC 3: BẮN CẢ 3 CÙNG LÚC VÀ CHỜ TẤT CẢ VỀ ĐÍCH
+      // Đây là phép thuật giúp tăng tốc độ!
+      const [overpassData, weatherData, forecastData] = await Promise.all([
+        overpassPromise, 
+        weatherPromise, 
+        forecastPromise
+      ]);
+
+
+      // BƯỚC 4: XỬ LÝ DỮ LIỆU (Như cũ)
       let poisArray = [];
       if (overpassData.elements && overpassData.elements.length > 0) {
         poisArray = overpassData.elements.slice(0, 5).map(poi => ({
           id: poi.id,
           lat: poi.lat || (poi.center && poi.center.lat),
           lon: poi.lon || (poi.center && poi.center.lon),
-          display_name: poi.tags?.name || poi.tags?.tourism || poi.tags?.amenity || poi.tags?.shop || "POI",
-          type: poi.tags?.tourism || poi.tags?.amenity || poi.tags?.shop || "point of interest"
+          display_name: poi.tags?.name || poi.tags?.amenity || "POI",
+          type: poi.tags?.amenity || "Điểm đến"
         }));
       }
 
-      // Thêm địa điểm chính với thông tin thời tiết
       poisArray.unshift({
         id: place.osm_id,
         lat: place.lat,
@@ -134,14 +219,14 @@ function App() {
         }
       });
 
-      // update the application's state with the location and POI data
       setPois(poisArray);
-      // update the map's center to the location's coordinates.
       setMapCenter([parseFloat(lat), parseFloat(lon)]);
 
     } catch (err) {
-      setError('Lỗi khi tìm địa điểm hoặc POI.');
+      setError('Lỗi kết nối. Vui lòng thử lại.');
       console.error(err);
+    } finally {
+      setIsLoading(false); // Kết thúc tải -> Tắt loading
     }
   };
 
@@ -161,7 +246,7 @@ function App() {
     
     try {
       //  API overpass
-      const response = await fetch("https://overpass-api.de/api/interpreter", {
+      const response = await fetch("https://overpass.kumi.systems/api/interpreter", {
         method: 'POST', body: overpassQuery
       });
       const data = await response.json();
@@ -189,6 +274,14 @@ function App() {
     setFindMeTrigger(t => t + 1);
   };
 
+  // 1. Màn hình chờ khi đang tải Firebase
+  if (loadingAuth) return <div>Đang tải...</div>;
+
+  // 2. Nếu CHƯA đăng nhập -> Hiện Form Auth
+  if (!user) {
+    return <AuthForm />;
+  }
+
   return (
     <div className="App">
       <header className="App-header">
@@ -205,8 +298,42 @@ function App() {
             onChange={(e) => setMainQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           />
-          <button onClick={handleSearch}>Tìm kiếm</button>
+
+          <button 
+            onClick={handleSearch} 
+            disabled={isLoading} // Khóa nút khi đang tải
+            style={{ 
+              backgroundColor: isLoading ? '#ccc' : '#0078d4',
+              cursor: isLoading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {isLoading ? 'Đang tìm...' : 'Tìm kiếm'}
+          </button>
+
+          <SearchHistory user={user} onSelectHistory={handleHistorySelect} />
+
         </div>
+
+        {/* NÚT ĐĂNG XUẤT */}
+        <div className="user-profile-container">
+             {/* 1. Avatar bên trái */}
+             <div className="user-avatar">
+               {user.email.charAt(0).toUpperCase()}
+             </div>
+             
+             {/* 2. Cột bên phải: Chứa Tên và Nút */}
+             <div className="user-details">
+               {/* Tên ở trên */}
+               <span className="user-name">
+                 {user.email.split('@')[0]}
+               </span>
+
+               {/* Nút đăng xuất ở dưới */}
+               <button onClick={handleLogout} className="logout-btn-small">
+                 Đăng xuất
+               </button>
+             </div>
+          </div>
 
         {error && <p className="error-message">{error}</p>}
       </header>

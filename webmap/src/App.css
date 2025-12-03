@@ -214,3 +214,74 @@ html, body, #root {
 .weather-overlay > div {
   margin-bottom: 10px;
 }
+
+/* --- USER PROFILE HEADER --- */
+
+.user-profile-container {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 5px 15px 5px 5px; /* Padding phải rộng hơn chút */
+  border-radius: 40px; /* Bo tròn lớn hơn */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin-left: 15px;
+  border: 1px solid #eee;
+  min-width: 140px; /* Đảm bảo độ rộng tối thiểu */
+}
+
+/* Avatar tròn */
+.user-avatar {
+  width: 40px; /* Avatar to hơn một chút */
+  height: 40px;
+  background: linear-gradient(135deg, #FF6B6B, #EE5253);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 18px;
+  margin-right: 10px; /* Cách phần chữ ra */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  flex-shrink: 0; /* Không cho avatar bị bóp méo */
+}
+
+/* Cột chứa Tên và Nút (Nằm dọc) */
+.user-details {
+  display: flex;
+  flex-direction: column; /* Xếp dọc */
+  align-items: flex-start; /* Căn trái */
+  justify-content: center;
+}
+
+/* Tên người dùng */
+.user-name {
+  font-weight: 700;
+  color: #333;
+  font-size: 0.9em;
+  line-height: 1.2; /* Giãn dòng nhỏ lại */
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nút đăng xuất nhỏ */
+.logout-btn-small {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 2px;
+  color: #d93025; /* Màu đỏ */
+  font-size: 0.75em; /* Chữ nhỏ hơn */
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+}
+
+.logout-btn-small:hover {
+  color: #c0251a;
+  text-decoration: underline;
+}

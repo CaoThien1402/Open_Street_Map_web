@@ -1,0 +1,95 @@
+/* Nền gradient toàn màn hình */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Hộp form chính */
+.auth-box {
+  background: rgba(255, 255, 255, 0.95); /* Màu trắng hơi trong suốt */
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); /* Đổ bóng sâu */
+  width: 350px;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.auth-box:hover {
+  transform: translateY(-5px); /* Hiệu ứng bay lên nhẹ khi di chuột */
+}
+
+.auth-box h2 {
+  margin-bottom: 25px;
+  color: #333;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Input đẹp hơn */
+.auth-box input {
+  width: 100%;
+  padding: 12px 15px;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 25px; /* Bo tròn mạnh */
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  background-color: #f9f9f9;
+}
+
+.auth-box input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+  background-color: #fff;
+}
+
+/* Nút bấm gradient */
+.auth-box button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 15px;
+  background: linear-gradient(to right, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.auth-box button:hover {
+  background: linear-gradient(to right, #764ba2, #667eea); /* Đảo màu khi hover */
+  transform: scale(1.02);
+}
+
+.auth-error {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 0.9em;
+  margin-bottom: 15px;
+  border: 1px solid #ffcdd2;
+}
+
+.toggle-auth {
+  color: #667eea;
+  cursor: pointer;
+  margin-top: 20px;
+  font-size: 0.95em;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.toggle-auth:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
