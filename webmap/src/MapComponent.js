@@ -9,7 +9,7 @@ import {
   CircleMarker,
   Circle 
 } from 'react-leaflet';
-import L from 'leaflet';
+// import L from 'leaflet';
 
 // --- COMPONENT CON 1: ĐỊNH VỊ ---
 function UserLocationMarker({ onLocationFound, findMeTrigger }) {
@@ -85,23 +85,13 @@ function UserLocationMarker({ onLocationFound, findMeTrigger }) {
   );
 }
 
-// Icon cafe 
-const cafeIcon = new L.Icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/128/924/924514.png',
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -30]
-});
-
-// --- COMPONENT 2: FIND POI WHEN CLICK SOMEWHERE ---
+// --- COMPONENT 2: FIND ADDRESS WHEN CLICK SOMEWHERE ---
 function LocationFinder({ searchID }) {
   const [clickedPosition, setClickedPosition] = useState(null);
   const [address, setAddress] = useState('Đang tìm địa chỉ...');
-  const [nearbyPOIs, setNearbyPOIs] = useState([]); 
 
   useEffect(() => {
     setClickedPosition(null);
-    setNearbyPOIs([]);
   }, [searchID]); 
 
   const map = useMapEvents({
@@ -110,26 +100,12 @@ function LocationFinder({ searchID }) {
       
       const { lat, lng } = e.latlng;
       setClickedPosition(e.latlng);
-      setNearbyPOIs([]); 
       setAddress('Đang tìm địa chỉ...');
       
       fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=18`)
         .then((res) => res.json())
         .then((data) => setAddress(data.display_name || 'Không tìm thấy địa chỉ.'))
         .catch(() => setAddress('Lỗi khi tìm địa chỉ.'));
-      
-      const RADIUS_M = 1000;
-      const overpassQuery = `
-        [out:json][timeout:60];
-        nwr(around:${RADIUS_M},${lat},${lng})["amenity"="cafe"];
-        out center 20;
-      `;
-      fetch("https://overpass-api.de/api/interpreter", { method: 'POST', body: overpassQuery })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.elements) setNearbyPOIs(data.elements);
-        })
-        .catch((err) => console.error("Lỗi Overpass:", err));
     },
   });
 
@@ -141,17 +117,6 @@ function LocationFinder({ searchID }) {
           {address}
         </Popup>
       )}
-      {nearbyPOIs.map((poi) => {
-        const lat = poi.lat || (poi.center && poi.center.lat);
-        const lon = poi.lon || (poi.center && poi.center.lon);
-        if (!lat || !lon) return null;
-        const name = poi.tags?.name || "(Không có tên)";
-        return (
-          <Marker key={poi.id} position={[lat, lon]} icon={cafeIcon}>
-            <Popup><b>{name}</b><br />Loại: Quán cafe</Popup>
-          </Marker>
-        );
-      })}
     </>
   );
 }

@@ -6,7 +6,7 @@ import AuthForm from './AuthForm';
 import SearchHistory from './SearchHistory'; 
 import { auth, db} from './firebase'; 
 import { onAuthStateChanged, signOut} from 'firebase/auth'; 
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, limit, getDocs, deleteDoc } from 'firebase/firestore';
 import './App.css';
 
 // KEY API WEATHER
@@ -54,15 +54,34 @@ function App() {
   const handleLocationFound = useCallback((latlng) => { setUserLocation(latlng); }, []);
 
   // --- HÀM LƯU LỊCH SỬ VÀO FIREBASE ---
-  const saveToHistory = async (text, type = 'place') => {
+  const saveToHistory = async (text, type = 'place', poisData = null, routeData = null) => {
     if (!user || !text) return; // Chỉ lưu nếu đã đăng nhập
 
     try {
+      // Kiểm tra xem đã có bản ghi trùng lặp chưa
+      const duplicateQuery = query(
+        collection(db, "searchHistory"),
+        where("uid", "==", user.uid),
+        where("text", "==", text),
+        limit(1)
+      );
+      
+      const snapshot = await getDocs(duplicateQuery);
+      
+      // Nếu đã tồn tại, xóa bản cũ trước khi thêm mới
+      if (!snapshot.empty) {
+        const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+      }
+      
+      // Thêm bản ghi mới
       await addDoc(collection(db, "searchHistory"), {
-        uid: user.uid,        // Của ai?
-        text: text,           // Tìm gì?
-        type: type,           // Loại tìm kiếm (place/route)
-        timestamp: serverTimestamp() // Thời gian server
+        uid: user.uid,
+        text: text,
+        type: type,
+        pois: poisData,      // Lưu danh sách POIs tìm được
+        route: routeData,    // Lưu thông tin route
+        timestamp: serverTimestamp()
       });
     } catch (e) {
       console.error("Lỗi lưu lịch sử:", e);
@@ -70,15 +89,20 @@ function App() {
   };
 
   // --- HÀM XỬ LÝ KHI CHỌN TỪ LỊCH SỬ ---
-  const handleHistorySelect = (text) => {
-    setMainQuery(text); // Điền vào ô input
-    // Vì state cập nhật bất đồng bộ, ta gọi tìm kiếm thủ công một chút
-    // Nhưng cách tốt nhất là dùng useEffect hoặc gọi trực tiếp logic tìm kiếm với tham số 'text'
-    // Ở đây ta setMainQuery và gọi handleSearch ngay sau đó sẽ bị cũ state.
-    // Cách sửa nhanh: Tách logic tìm kiếm ra hoặc gọi đệ quy.
+  const handleHistorySelect = (item) => {
+    setMainQuery(item.text);
     
-    // Tạm thời ta setQuery rồi gọi logic tìm kiếm với text truyền vào
-    handleSearch(text); 
+    // Khôi phục POIs hoặc Route từ lịch sử (không lưu lại vào history)
+    if (item.pois && item.pois.length > 0) {
+      setPois(item.pois);
+      setMapCenter([parseFloat(item.pois[0].lat), parseFloat(item.pois[0].lon)]);
+      setRoute(null);
+    }
+    
+    if (item.route) {
+      setRoute(item.route);
+      setPois([]);
+    }
   };
 
   // handle search words
@@ -106,10 +130,11 @@ function App() {
       if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
         const start = parts[0].trim();
         const end = parts[1].trim();
-        setRoute({ start, end });
+        const routeInfo = { start, end };
+        setRoute(routeInfo);
         
-        // --> LƯU LỊCH SỬ TÌM ĐƯỜNG
-        saveToHistory(`${start} đến ${end}`, 'route');
+        // --> LƯU LỊCH SỬ TÌM ĐƯỜNG với route data
+        saveToHistory(`${start} đến ${end}`, 'route', null, routeInfo);
         return; 
       }
     }
@@ -121,16 +146,11 @@ function App() {
         return;
       }
       findPoisOverpass(query, userLocation.lat, userLocation.lng);
-      
-      // --> LƯU LỊCH SỬ TÌM POI
-      saveToHistory(query, 'poi');
       return; 
     }
 
     // --- LOGIC TÌM ĐỊA ĐIỂM ---
     findPlaceNominatim(query);
-    // --> LƯU LỊCH SỬ TÌM ĐỊA ĐIỂM
-    saveToHistory(query, 'place');
   };
 
  const findPlaceNominatim = async (query) => {
@@ -222,6 +242,9 @@ function App() {
       setPois(poisArray);
       setMapCenter([parseFloat(lat), parseFloat(lon)]);
 
+      // --> LƯU LỊCH SỬ với POIs data
+      saveToHistory(query, 'place', poisArray, null);
+
     } catch (err) {
       setError('Lỗi kết nối. Vui lòng thử lại.');
       console.error(err);
@@ -262,6 +285,9 @@ function App() {
         }));
         setPois(normalizedPois);
         setMapCenter([lat, lon]); 
+        
+        // --> LƯU LỊCH SỬ với POIs data
+        saveToHistory(query, 'poi', normalizedPois, null);
       } else {
         setError(`Không tìm thấy "${query}" nào gần bạn.`);
       }

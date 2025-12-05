@@ -68,6 +68,13 @@
   max-width: 200px;
 }
 
+.search-count {
+  color: #0078d4;
+  font-weight: bold;
+  font-size: 0.85em;
+  margin-left: 4px;
+}
+
 .delete-history {
   color: #ccc;
   font-weight: bold;

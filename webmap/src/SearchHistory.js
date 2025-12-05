@@ -54,7 +54,7 @@ function SearchHistory({ user, onSelectHistory }) {
           ) : (
             <ul>
               {history.map(item => (
-                <li key={item.id} onClick={() => onSelectHistory(item.text)}>
+                <li key={item.id} onClick={() => onSelectHistory(item)}>
                   <span className="history-text">
                     {item.type === 'route' ? '🚗 ' : '📍 '} 
                     {item.text}
@@ -62,6 +62,7 @@ function SearchHistory({ user, onSelectHistory }) {
                   <span 
                     className="delete-history" 
                     onClick={(e) => handleDelete(e, item.id)}
+                    title="Xóa lịch sử này"
                   >
                     ×
                   </span>
