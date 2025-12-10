@@ -4,10 +4,14 @@ import Routing from './Routing';
 import TranslationPopup from './TranslationPopup';
 import AuthForm from './AuthForm'; 
 import SearchHistory from './SearchHistory'; 
+import AIChatbot from './AIChatbot';
 import { auth, db} from './firebase'; 
 import { onAuthStateChanged, signOut} from 'firebase/auth'; 
 import { collection, addDoc, serverTimestamp, query, where, limit, getDocs, deleteDoc } from 'firebase/firestore';
 import './App.css';
+
+// ĐỊA CHỈ BACKEND - Dùng localhost khi dev, thay bằng URL ngrok khi deploy
+const BACKEND_BASE_URL = "http://localhost:8000";
 
 // KEY API WEATHER
 const OWM_API_KEY = "6522a2c7adbdafe697d81c73b019b453"; 
@@ -185,7 +189,7 @@ function App() {
         out center 10;
       `; // Giới hạn loại tìm kiếm cho nhẹ bớt
       
-      const overpassPromise = fetch("https://overpass.kumi.systems/api/interpreter", {
+      const overpassPromise = fetch("https://overpass-api.de/api/interpreter", {
         method: 'POST',
         body: overpassQuery
       }).then(res => res.json());
@@ -269,7 +273,7 @@ function App() {
     
     try {
       //  API overpass
-      const response = await fetch("https://overpass.kumi.systems/api/interpreter", {
+      const response = await fetch("https://overpass-api.de/api/interpreter", {
         method: 'POST', body: overpassQuery
       });
       const data = await response.json();
@@ -376,6 +380,11 @@ function App() {
 
       <TranslationPopup />
 
+      {/* AI Chatbot - Trợ lý du lịch */}
+      <AIChatbot 
+        backendUrl={BACKEND_BASE_URL}
+        currentLocation={pois.length > 0 ? pois[0].display_name?.split(',')[0] : null}
+      />
       
     </div>
   );
